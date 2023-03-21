@@ -5,9 +5,9 @@ utils.compare = (first, second) => {
     return first == second;
 }
 
-utils.generateAuthToken = (object) => {
+utils.generateAuthToken = (payload) => {
     try {
-        object.token = jsonWebToken.sign({ _id: object._id.toString()}, process.env.SECRET_KEY);
+        payload.token = jsonWebToken.sign({ _id: payload._id}, process.env.SECRET_KEY);
         return;
     } catch(err) {
         console.log(err);

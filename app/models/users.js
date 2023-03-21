@@ -1,9 +1,14 @@
 const MONGOOSE = require("mongoose");
 
+const { users } = require("../CONSTANTS/CONSTANTS");
+
 const UsersSchema = new MONGOOSE.Schema({
-    phoneNo: { type: Number, unique: true, required: true },
+    name: { type: String },
+    email: { type: String },
+    phone: { type: Number },
     password: { type: String, required: true },
-    token: { type: String }
-});
+    userType: { type: Number, enum: Object.values(users), default: users.CUSTOMER },
+    token: { type: String },
+}, { versionKey: false });
 
 module.exports = new MONGOOSE.model("user", UsersSchema);

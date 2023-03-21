@@ -1,60 +1,70 @@
 let validate = {};
 const Joi = require('joi');
 
-const createNewPlayerSchema = Joi.object({
-    firstName: Joi.string().required(),
-    lastName: Joi.string().required(),
-    age: Joi.number().required(),
-    jerseyNo: Joi.number().required(),
-    type: Joi.string().lowercase().required(),
-    team: Joi.string().lowercase().required(),
-});
+const { discountType } = require("../CONSTANTS/CONSTANTS");
 
-const selectNextBatsmanSchema = Joi.object({
-    matchId: Joi.string().required(),
-    newBatsmanId1: Joi.string().required(),
-    newBatsmanId2: Joi.string(),
-});
-
-const selectNextBowlerSchema = Joi.object({
-    matchId: Joi.string().required(),
-    newBowlerId: Joi.string().required(),
-});
-
-const updateScoreSchema = Joi.object().keys({
-    matchId: Joi.string().required(),
-    runs: Joi.number().integer().min(0).required(),
-    byes: Joi.boolean(),
-    validity: Joi.string().lowercase().valid("valid", "wide", "noball").required(),
-    wicketType: Joi.string().lowercase().valid("lbw", "runout", "caught", "stumped", "bowled", "hitwicket"),
-    wicketPlayerId: Joi.string(),
-});
-
-const addNewMatchSchema = Joi.object({
-    team1Name: Joi.string().required(),
-    team1Players: Joi.array().length(11).items(Joi.string()).required(),
-    team2Name: Joi.string().required(),
-    team2Players: Joi.array().length(11).items(Joi.string()).required(),
-    date: Joi.date().required(),
-    venue: Joi.string().required(),
-    totalOvers: Joi.number().required(),
-    firstBattingTeam: Joi.number().valid(1, 2).required(),
-});
-
-const signupUserSchema = Joi.object({
-    phoneNo: Joi.number().integer().min(10 ** 9).max(10 ** 10 - 1).required(),
-    password: Joi.string().min(8).required(),
+const signup = Joi.object({
+    email: Joi.string().email(),
+    authType: Joi.number().valid(1, 2),
+    phone: Joi.number().integer().min(10 ** 9).max(10 ** 10 - 1).when("email", { is: Joi.exist(), then: Joi.forbidden(), otherwise: Joi.required() }),
+    password: Joi.string().regex(new RegExp("^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$")).message("Enter a valid password").required(),
     confirmPassword: Joi.string().required().valid(Joi.ref('password')),
 });
 
-const loginUserSchema = Joi.object({
-    phoneNo: Joi.number().integer().min(10 ** 9).max(10 ** 10 - 1).required(),
-    password: Joi.string().min(8).required(),
+const login = Joi.object({
+    email: Joi.string().email(),
+    phone: Joi.number().integer().min(10 ** 9).max(10 ** 10 - 1).when("email", { is: Joi.exist(), then: Joi.forbidden(), otherwise: Joi.required() }),
+    password: Joi.string().regex(new RegExp("^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$")).message("Enter a valid password").required(),
 });
 
-const validateAll = (req, res, next, schema) => {
+const update = Joi.object({
+    name: Joi.string(),
+});
+
+const fetchOneProduct = Joi.object({
+    productID: Joi.string().required(),
+    vendorID: Joi.string().required(),
+});
+
+const fetchProducts = Joi.object({
+    vendorID: Joi.string().required(),
+    page: Joi.number().required(),
+    limit: Joi.number().required(),
+});
+
+const addNewProduct = Joi.object({
+    vendorID: Joi.string(),
+    name: Joi.string().required(),
+    description: Joi.string(),
+    price: Joi.number().required(),
+    discount: Joi.number(),
+    discountType: Joi.number().valid(...Object.values(discountType)),
+});
+
+const addToCart = Joi.object({
+    productID: Joi.string().required(),
+    quantity: Joi.number().required(),
+});
+
+const fetchOrders = Joi.object({
+    page: Joi.number().required(),
+    limit: Joi.number().required(),
+});
+
+const rating = Joi.object({
+    rating: Joi.number().required().min(0).max(5),
+    productID: Joi.string().required(),
+    vendorID: Joi.string().required(),
+});
+
+const removeRating = Joi.object({
+    productID: Joi.string().required(),
+    vendorID: Joi.string().required(),
+});
+
+const validateAll = (req, res, next, schema, payload) => {
     try {
-        const result = schema.validate(req.body);
+        const result = schema.validate(payload);
         if(result.error) {
             return res.status(400).send({success: false, error: result.error.message || "Invalid data"});
         } else {
@@ -66,32 +76,46 @@ const validateAll = (req, res, next, schema) => {
     next();
 }
 
-validate.validateSelectNextBatsman = (req, res, next) => {
-    validateAll(req, res, next, selectNextBatsmanSchema);
+validate.signup = (req, res, next) => {
+    validateAll(req, res, next, signup, req.body);
 }
 
-validate.validateSelectNextBowler = (req, res, next) => {
-    validateAll(req, res, next, selectNextBowlerSchema);
+validate.login = (req, res, next) => {
+    validateAll(req, res, next, login, req.body);
 }
 
-validate.validateUpdateScore = (req, res, next) => {
-    validateAll(req, res, next, updateScoreSchema);
+validate.fetchOneProduct = (req, res, next) => {
+    validateAll(req, res, next, fetchOneProduct, req.query);
 }
 
-validate.validateAddNewMatch = (req, res, next) => {
-    validateAll(req, res, next, addNewMatchSchema);
+validate.fetchProducts = (req, res, next) => {
+    validateAll(req, res, next, fetchProducts, req.query);
 }
 
-validate.validateCreateNewPlayer = (req, res, next) => {
-    validateAll(req, res, next, createNewPlayerSchema);
+validate.addNewProduct = (req, res, next) => {
+    req.body.price = parseInt(req.body.price);
+    if(isNaN(req.body.price)) return res.status(400).send({success: false, message: "Invalid price"});
+    validateAll(req, res, next, addNewProduct, req.body);
 }
 
-validate.validateSignupUser = (req, res, next) => {
-    validateAll(req, res, next, signupUserSchema);
+validate.addToCart = (req, res, next) => {
+    validateAll(req, res, next, addToCart, req.body);
 }
 
-validate.validateLoginUser = (req, res, next) => {
-    validateAll(req, res, next, loginUserSchema);
+validate.fetchOrders = (req, res, next) => {
+    validateAll(req, res, next, fetchOrders, req.query);
+}
+
+validate.rating = (req, res, next) => {
+    validateAll(req, res, next, rating, req.body);
+}
+
+validate.removeRating = (req, res, next) => {
+    validateAll(req, res, next, removeRating, req.body);
+}
+
+validate.update = (req, res, next) => {
+    validateAll(req, res, next, update, req.body);
 }
 
 module.exports = validate;
