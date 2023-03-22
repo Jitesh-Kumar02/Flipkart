@@ -11,6 +11,7 @@ const ordersRoute = require("./app/routes/orders");
 const productsRoute = require("./app/routes/products");
 const usersRoute = require("./app/routes/users");
 const reviewsRoute = require("./app/routes/reviews");
+const imagesRoute = require("./app/routes/images");
 
 app.use(cors());
 app.use(express.json());
@@ -20,6 +21,7 @@ app.use("/orders", ordersRoute);
 app.use("/products", productsRoute);
 app.use("/users", usersRoute);
 app.use("/reviews", reviewsRoute);
+app.use("/images", imagesRoute);
 
 const port = process.env.PORT || 8000;
 server.listen(port, () => {
